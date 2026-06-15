@@ -1,302 +1,330 @@
 import os
-import sys
 import math
 import time
-import numpy as np
 import pandas as pd
-from kivymd.app import MDApp
-from kivy.uix.screenmanager import ScreenManager, Screen
+import numpy as np
 from kivy.lang import Builder
-from kivy.core.window import Window
+from kivymd.app import MDApp
+from kivymd.uix.filemanager import MDFileManager
 
-Window.keyboard_anim_type = 'padding'
+# C++ इंजन को जोड़ने की जांच
+try:
+    import opataz_cpp
+except ImportError:
+    opataz_cpp = None
 
-# ==================== KV DESIGN LANGUAGE (TRUE PREMIUM WHITE INTERFACE) ====================
+# मोबाइल स्क्रीन का सुंदर डिज़ाइन (Buttons और Boxes)
 KV = '''
-ScreenManager:
-    LoginScreen:
-    MainScreen:
+BoxLayout:
+    orientation: 'vertical'
+    md_bg_color: 0.98, 0.98, 0.98, 1
 
-<LoginScreen>:
-    name: 'login'
-    MDFloatLayout:
-        md_bg_color: [0.97, 0.97, 0.99, 1]
+    MDTopAppBar:
+        title: "🔮 ओपटाज़ एआई - ऑफलाइन मोड"
+        elevation: 4
+        md_bg_color: 0.85, 0.15, 0.15, 1
+        pos_hint: {"top": 1}
 
-        MDLabel:
-            text: "🔮 OPATAZ AI"
-            pos_hint: {"center_x": .5, "center_y": .75}
-            size_hint_x: .8
-            halign: "center"
-            font_style: "H4"
-            theme_text_color: "Custom"
-            text_color: [0.85, 0.12, 0.12, 1]
-            bold: True
+    ScrollView:
+        do_scroll_x: False
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: self.minimum_height
+            padding: '16dp'
+            spacing: '16dp'
 
-        MDLabel:
-            text: "On-Device God Mode Engine"
-            pos_hint: {"center_x": .5, "center_y": .68}
-            size_hint_x: .8
-            halign: "center"
-            font_style: "Subtitle2"
-            theme_text_color: "Custom"
-            text_color: [0.4, 0.4, 0.45, 1]
-
-        MDTextField:
-            id: phone_num
-            hint_text: "Enter Mobile Number"
-            helper_text: "With country code (e.g., +91)"
-            helper_text_mode: "on_focus"
-            pos_hint: {"center_x": .5, "center_y": .52}
-            size_hint_x: .8
-
-        MDRaisedButton:
-            text: "LOGIN WITH OTP"
-            pos_hint: {"center_x": .5, "center_y": .40}
-            size_hint_x: .8
-            md_bg_color: [0.85, 0.12, 0.12, 1]
-            on_release: root.do_login()
-
-        MDRaisedButton:
-            text: "CONTINUE WITH GOOGLE"
-            pos_hint: {"center_x": .5, "center_y": .31}
-            size_hint_x: .8
-            md_bg_color: [0.2, 0.2, 0.25, 1]
-            on_release: root.do_login()
-
-<MainScreen>:
-    name: 'main'
-    MDFloatLayout:
-        md_bg_color: [0.97, 0.97, 0.99, 1]
-
-        MDCard:
-            size_hint: (1, .08)
-            pos_hint: {"top": 1}
-            md_bg_color: [0.92, 0.94, 0.97, 1]
-            radius: [0, 0, 0, 0]
-            elevation: 1
-            padding: 15
-            
+            # --- पहला विकल्प (मोड 1) ---
             MDLabel:
-                text: "🔮 Opataz Engine - Control Panel"
+                text: "विकल्प 1: मैन्युअल चेन्स इनपुट बॉक्स"
                 font_style: "H6"
                 bold: True
-                theme_text_color: "Custom"
-                text_color: [0.1, 0.1, 0.1, 1]
 
-        MDRaisedButton:
-            id: btn_mode1
-            text: "Text Box Mode"
-            pos_hint: {"center_x": .28, "center_y": .88}
-            size_hint: (.42, .05)
-            md_bg_color: [0.85, 0.12, 0.12, 1]
-            on_release: root.switch_mode(1)
+            MDTextField:
+                id: input_data
+                hint_text: "यहाँ अपनी चेन्स डालें (जैसे: 2, 3, 2..)"
+                multiline: True
+                mode: "rectangle"
+                size_hint_y: None
+                height: "140dp"
 
-        MDRaisedButton:
-            id: btn_mode2
-            text: "CSV File Mode"
-            pos_hint: {"center_x": .72, "center_y": .88}
-            size_hint: (.42, .05)
-            md_bg_color: [0.6, 0.6, 0.65, 1]
-            on_release: root.switch_mode(2)
-
-        MDTextField:
-            id: txt_chains_input
-            hint_text: "Paste Chains here (e.g., 5, -3, 0...)"
-            multiline: True
-            pos_hint: {"center_x": .5, "center_y": .73}
-            size_hint_x: .85
-            opacity: 1
-            disabled: False
-
-        MDTextField:
-            id: txt_csv_input
-            hint_text: "Enter CSV Filename (e.g., data.csv)"
-            pos_hint: {"center_x": .5, "center_y": .73}
-            size_hint_x: .85
-            opacity: 0
-            disabled: True
-
-        MDRaisedButton:
-            id: main_action_btn
-            text: "🚀 RUN OPATAZ CORE MATH"
-            pos_hint: {"center_x": .5, "center_y": .59}
-            size_hint_x: .85
-            md_bg_color: [0.85, 0.12, 0.12, 1]
-            on_release: root.calculate_opataz()
-
-        MDCard:
-            size_hint: (.85, .08)
-            pos_hint: {"center_x": .5, "center_y": .48}
-            md_bg_color: [0.9, 0.93, 0.96, 1]
-            padding: 10
-            radius: [8, 8, 8, 8]
-            
-            MDLabel:
-                id: time_label
-                text: "Execution Time: -- sec"
-                theme_text_color: "Custom"
-                text_color: [0.05, 0.45, 0.35, 1]
-                font_style: "Button"
-                halign: "center"
-
-        MDCard:
-            size_hint: (.85, .36)
-            pos_hint: {"center_x": .5, "center_y": .23}
-            md_bg_color: [1, 1, 1, 1]
-            padding: 20
-            radius: [12, 12, 12, 12]
-            elevation: 2
-            orientation: "vertical"
-            spacing: 10
-
-            MDLabel:
-                text: "🎯 Final Calculation Summary"
-                theme_text_color: "Custom"
-                text_color: [0.1, 0.1, 0.1, 1]
-                font_style: "Subtitle1"
-                bold: True
+            MDFillRoundFlatButton:
+                text: "🔄 डेटा साफ़ करें (Reset)"
+                md_bg_color: 0.4, 0.4, 0.4, 1
+                pos_hint: {"center_x": .5}
+                on_release: app.clear_input()
 
             MDSeparator:
-                color: [0.92, 0.92, 0.95, 1]
+                height: "2dp"
 
+            # --- दूसरा विकल्प (मोड 2) ---
             MDLabel:
-                id: o_prime_label
-                text: "O' (Opataz Prime): --"
-                theme_text_color: "Custom"
-                text_color: [0.25, 0.25, 0.3, 1]
-                font_style: "Body1"
-
-            MDLabel:
-                id: final_opataz_label
-                text: "FINAL RESULT: --"
-                theme_text_color: "Custom"
-                text_color: [0.85, 0.12, 0.12, 1]
-                font_style: "H5"
+                text: "विकल्प 2: ऑटोमैटिक CSV फ़ाइल अपलोडर"
+                font_style: "H6"
                 bold: True
+
+            MDRaisedButton:
+                text: "📂 बड़ी CSV फाइल चुनें (Up to 1GB+)"
+                md_bg_color: 0.1, 0.5, 0.8, 1
+                pos_hint: {"center_x": .5}
+                on_release: app.open_file_manager()
+
+            MDLabel:
+                id: file_status
+                text: "कोई फाइल नहीं चुनी गई (100% सुरक्षित ऑफलाइन मोड)"
+                halign: "center"
+                font_style: "Caption"
+
+            # --- गणना करने का मुख्य बटन ---
+            MDFillRoundFlatButton:
+                text: "🚀 गॉड गति से गणना करें"
+                font_style: "Button"
+                md_bg_color: 0.85, 0.15, 0.15, 1
+                pos_hint: {"center_x": .5}
+                size_hint_x: 0.8
+                on_release: app.calculate_opataz()
+
+            # --- परिणाम बॉक्स ---
+            MDCard:
+                orientation: 'vertical'
+                padding: "16dp"
+                spacing: "8dp"
+                size_hint_y: None
+                height: "180dp"
+                md_bg_color: 1, 1, 1, 1
+                elevation: 2
+                radius: [12, 12, 12, 12]
+
+                MDLabel:
+                    text: "📊 परिणाम (Results):"
+                    font_style: "Subtitle1"
+                    bold: True
+                MDLabel:
+                    id: output_k_g
+                    text: "कुल बॉक्स (K): -  |  साइज़ (g): -"
+                    font_style: "Body1"
+                MDLabel:
+                    id: output_prime
+                    text: "ओपटाज़' (O'): -"
+                    font_style: "Body1"
+                MDLabel:
+                    id: output_final
+                    text: "FINAL OPATAZ: -"
+                    font_style: "H5"
+                    bold: True
+                    theme_text_color: "Error"
 '''
-
-class LoginScreen(Screen):
-    def do_login(self):
-        self.manager.current = 'main'
-
-class MainScreen(Screen):
-    current_mode = 1
-
-    def switch_mode(self, mode_num):
-        self.current_mode = mode_num
-        if mode_num == 1:
-            self.ids.btn_mode1.md_bg_color = [0.85, 0.12, 0.12, 1]
-            self.ids.btn_mode2.md_bg_color = [0.6, 0.6, 0.65, 1]
-            self.ids.txt_chains_input.opacity = 1
-            self.ids.txt_chains_input.disabled = False
-            self.ids.txt_csv_input.opacity = 0
-            self.ids.txt_csv_input.disabled = True
-            self.ids.main_action_btn.md_bg_color = [0.85, 0.12, 0.12, 1]
-        else:
-            self.ids.btn_mode1.md_bg_color = [0.6, 0.6, 0.65, 1]
-            self.ids.btn_mode2.md_bg_color = [0.05, 0.52, 0.36, 1]
-            self.ids.txt_chains_input.opacity = 0
-            self.ids.txt_chains_input.disabled = True
-            self.ids.txt_csv_input.opacity = 1
-            self.ids.txt_csv_input.disabled = False
-            self.ids.main_action_btn.md_bg_color = [0.05, 0.52, 0.36, 1]
-
-    def calculate_opataz(self):
-        start_time = time.time()
-        try:
-            if self.current_mode == 1:
-                text_data = self.ids.txt_chains_input.text.strip()
-                if not text_data: return
-                lines = text_data.split('\n')
-                raw_list = []
-                for l in lines:
-                    if l.strip():
-                        nums = [float(x) for x in l.replace('[','').replace(']','').split(',') if x.strip()]
-                        if nums: raw_list.append(nums)
-                if not raw_list: return
-                max_cols = max(len(c) for c in raw_list)
-                padded_data = [c + [0.0]*(max_cols - len(c)) for c in raw_list]
-                raw_data = np.array(padded_data, dtype=np.float64)
-                apply_filters = False
-            else:
-                filename = self.ids.txt_csv_input.text.strip()
-                if not filename or not os.path.exists(filename):
-                    self.ids.final_opataz_label.text = "Error: File not found!"
-                    return
-                df = pd.read_csv(filename)
-                raw_data = df.values.astype(np.float64)
-                apply_filters = True
-
-            rows, cols = raw_data.shape
-            first_elements = raw_data[:, 0]
-            max_elements = raw_data.max(axis=1)
-            min_elements = raw_data.min(axis=1)
-            A_vals = np.abs((first_elements + max_elements + min_elements) / 3.0)
-            A0 = np.mean(A_vals)
-
-            if len(first_elements) <= 1 or np.all(first_elements == first_elements[0]):
-                S = 1.0
-            else:
-                abs_firsts = np.abs(first_elements)
-                S = np.min(abs_firsts) / np.max(abs_firsts) if np.max(abs_firsts) != 0 else 1.0
-
-            s_val = A0 + S
-            d_val = s_val - math.floor(s_val)
-            sigma = math.ceil(s_val) if (0.51 <= d_val <= 0.99) else math.floor(s_val)
-
-            n_kg = len(str(int(sigma))) if sigma > 0 else 1
-            V = 1.0 + (sigma / (10 ** n_kg))
-            K = math.ceil(math.sqrt(rows) * V)
-            if K % 2 == 0: K += 1
-
-            global_max = raw_data.max()
-            global_min = raw_data.min()
-            g = math.ceil((global_max - global_min) / K) if global_max != global_min else 1.0
-            if g <= 0: g = 1.0
-
-            processed_data = raw_data.copy()
-            if apply_filters:
-                col_mins = raw_data.min(axis=0)
-                col_maxs = raw_data.max(axis=0)
-                col_avgs = raw_data.mean(axis=0)
-                C_ratios = np.where(col_maxs != 0, col_mins / col_maxs, 0.0)
-                if cols == 2:
-                    temp0 = processed_data[:, 0] + (processed_data[:, 1] * C_ratios[0])
-                    temp1 = processed_data[:, 1] + (processed_data[:, 0] * C_ratios[1])
-                    processed_data[:, 0], processed_data[:, 1] = temp0, temp1
-                else:
-                    for j in range(cols):
-                        processed_data[:, j] = processed_data[:, j] + (processed_data[:, j] * C_ratios[j])
-                for j in range(cols):
-                    if (col_maxs[j] - col_mins[j]) >= 2.0:
-                        processed_data[:, j] = col_avgs[j]
-
-            last_col = processed_data[:, -1]
-            calc_last = np.where(last_col == 0.0, 0.001, np.where(last_col != np.floor(last_col), np.ceil(last_col), last_col))
-            O_matrix = calc_last.copy()
-            for j in range(cols - 1):
-                t_val = K + processed_data[:, j]
-                O_matrix *= np.where(t_val == 0.0, 0.001, t_val)
-
-            O_prime = float(np.sum(np.abs(O_matrix)))
-            base_cand = int(g)
-            log_base = float(base_cand + 1) if base_cand % 2 != 0 else float(base_cand)
-            if log_base <= 1: log_base = 2.0
-            
-            final_result = math.log(O_prime, log_base) if O_prime > 1 else O_prime
-            end_time = time.time() - start_time
-
-            self.ids.time_label.text = f"✅ Processed in: {end_time:.4f} sec"
-            self.ids.o_prime_label.text = f"O' (Opataz Prime): {O_prime:.4f}"
-            self.ids.final_opataz_label.text = f"FINAL RESULT: {final_result:.6f}"
-        except Exception as ex:
-            self.ids.final_opataz_label.text = f"Error: {str(ex)}"
 
 class OpatazApp(MDApp):
     def build(self):
-        self.theme_cls.theme_style = "Light"
         self.theme_cls.primary_palette = "Red"
+        self.theme_cls.theme_style = "Light"
+        self.file_manager = MDFileManager(
+            exit_manager=self.exit_manager,
+            select_path=self.select_path
+        )
+        self.selected_file_path = None
         return Builder.load_string(KV)
+
+    def clear_input(self):
+        self.root.ids.input_data.text = ""
+        self.selected_file_path = None
+        self.root.ids.file_status.text = "डेटा साफ़ कर दिया गया है।"
+
+    def open_file_manager(self):
+        # फोन का इंटरनल स्टोरेज खोलेगा
+        self.file_manager.show('/') 
+
+    def select_path(self, path):
+        self.exit_manager()
+        if path.lower().endswith('.csv'):
+            self.selected_file_path = path
+            self.root.ids.file_status.text = f"फ़ाइल चुनी गई: {os.path.basename(path)}"
+            self.root.ids.input_data.text = "" 
+        else:
+            self.root.ids.file_status.text = "गलत फ़ाइल! कृपया केवल .csv फ़ाइल चुनें।"
+
+    def exit_manager(self, *args):
+        self.file_manager.close()
+
+    def parse_chains_with_loop_flag(self, text):
+        chains_info = []
+        for line in text.strip().split('\n'):
+            line = line.strip()
+            if line:
+                has_dots = '...' in line or '..' in line
+                line_clean = line.replace('[', '').replace(']', '').replace('...', '').replace('..', '')
+                elements = [float(x) for x in line_clean.split(',') if x.strip()]
+                if elements: 
+                    chains_info.append({'elements': elements, 'has_dots': has_dots})
+        return chains_info
+
+    def calculate_opataz(self):
+        if not opataz_cpp:
+            self.root.ids.output_final.text = "C++ इंजन लोड नहीं हो सका!"
+            return
+
+        input_text = self.root.ids.input_data.text.strip()
+        
+        # --- विकल्प 1: मैन्युअल चेन्स की गणना (आपका असली C++ लॉजिक) ---
+        if input_text:
+            try:
+                chains_info = self.parse_chains_with_loop_flag(input_text)
+                if not chains_info: return
+                
+                raw_chains = [c['elements'] for c in chains_info]
+                A_vals_kg = [opataz_cpp.calc_A(c) for c in raw_chains if c]
+                A0_kg = sum(A_vals_kg) / len(A_vals_kg) if A_vals_kg else 1.0
+                firsts_kg = [c[0] for c in raw_chains if c]
+                
+                S_kg = opataz_cpp.calc_S(firsts_kg)
+                sigma_kg = opataz_cpp.calc_sigma(A0_kg, S_kg)
+                n_kg = len(str(int(sigma_kg))) if sigma_kg > 0 else 1
+                V_kg = 1 + (sigma_kg / (10 ** n_kg))
+                K = opataz_cpp.calc_K(len(raw_chains), V_kg)
+                
+                all_raw_data = []
+                for c in raw_chains: all_raw_data.extend(c)
+                x = min(all_raw_data) if all_raw_data else 0.0
+                global_max = max(all_raw_data) if all_raw_data else 0.0
+                g = opataz_cpp.calc_g(global_max, x, K)
+                
+                resolved = []
+                for c in chains_info:
+                    res_c, _ = opataz_cpp.detect_and_resolve_loop(c['elements'], K, c['has_dots'])
+                    resolved.append(res_c)
+                    
+                if len(resolved) == 1:
+                    O_prime = opataz_cpp.calc_opataz_manual(resolved[0], K)
+                else:
+                    after_c = opataz_cpp.apply_c_ratio_manual(resolved)
+                    after_rnv = opataz_cpp.apply_rnv_manual(after_c)
+                    O_pts = [opataz_cpp.calc_opataz_manual(c, K) for c in after_rnv]
+                    fcr = [c[0] for c in after_rnv if c]
+                    if len(set(fcr)) == 1:
+                        O_prime = (sum(O_pts) / len(O_pts)) + (1.0 * K)
+                    else:
+                        abs_fcr = [abs(v) for v in fcr]
+                        R = (min(abs_fcr) / max(abs_fcr)) * K if max(abs_fcr) != 0 else 0
+                        O_prime = sum(O_pts) + R
+
+                O_prime = abs(O_prime)
+                base_candidate = int(g)
+                log_base = float(base_candidate + 1) if base_candidate % 2 != 0 else float(base_candidate)
+                if log_base <= 1: log_base = 2.0
+                
+                O_final = O_prime if (O_prime <= 1 or log_base <= 1) else math.log(O_prime, log_base)
+                
+                self.root.ids.output_k_g.text = f"कुल बॉक्स (K): {K}  |  साइज़ (g): {g:.4f}"
+                self.root.ids.output_prime.text = f"ओपटाज़' (O'): {O_prime:.6f}"
+                self.root.ids.output_final.text = f"FINAL OPATAZ: {O_final:.6f}"
+                
+            except Exception as e:
+                self.root.ids.output_final.text = "गणना में त्रुटि आई!"
+
+        # --- विकल्प 2: बड़ी CSV फ़ाइल (1GB तक) की पूरी तरह ऑफलाइन सुरक्षित गणना ---
+        elif self.selected_file_path:
+            try:
+                chunk_size = 200000
+                total_rows = 0
+                firsts_kg = []
+                A_vals_sum = 0.0
+                global_min, global_max = float('inf'), -float('inf')
+                col_mins, col_maxs = None, None
+                all_chunks_raw = []
+
+                # सुरक्षित मेमोरी मैनेजमेंट के साथ फ़ाइल रीड करना (आपका ओरिजिनल लॉजिक)
+                for chunk in pd.read_csv(self.selected_file_path, chunksize=chunk_size, on_bad_lines='skip'):
+                    chunk_clean = chunk.apply(pd.to_numeric, errors='coerce').dropna()
+                    if chunk_clean.empty: continue
+                    vals = chunk_clean.values.astype(np.float64)
+                    total_rows += len(vals)
+                    all_chunks_raw.append(vals)
+                    
+                    if vals.min() < global_min: global_min = vals.min()
+                    if vals.max() > global_max: global_max = vals.max()
+                    
+                    if col_mins is None:
+                        col_mins, col_maxs = vals.min(axis=0), vals.max(axis=0)
+                    else:
+                        col_mins = np.minimum(col_mins, vals.min(axis=0))
+                        col_maxs = np.maximum(col_maxs, vals.max(axis=0))
+                        
+                    if vals.shape[1] == 1:
+                        flat_vals = vals.flatten()
+                        firsts_kg.extend(flat_vals.tolist())
+                        A_vals_sum += np.sum(np.abs((flat_vals + flat_vals + flat_vals) / 3))
+                    else:
+                        firsts_kg.extend(vals[:, 0].tolist())
+                        A_vals_sum += np.sum(np.abs((vals[:, 0] + vals.max(axis=1) + vals.min(axis=1)) / 3))
+
+                if total_rows == 0:
+                    self.root.ids.output_final.text = "फ़ाइल खाली है!"
+                    return
+
+                x = global_min
+                A0_kg = A_vals_sum / total_rows
+                S_kg = opataz_cpp.calc_S(firsts_kg)
+                sigma_kg = opataz_cpp.calc_sigma(A0_kg, S_kg)
+                n_kg = len(str(int(sigma_kg))) if sigma_kg > 0 else 1
+                V_kg = 1 + (sigma_kg / (10 ** n_kg))
+                K = opataz_cpp.calc_K(total_rows, V_kg)
+                g = opataz_cpp.calc_g(global_max, x, K)
+                
+                n_elements = col_mins.shape[0]
+                C_ratios = np.zeros(n_elements, dtype=np.float64)
+                for idx in range(n_elements):
+                    if col_maxs[idx] != 0: C_ratios[idx] = col_mins[idx] / col_maxs[idx]
+
+                O_pts_sum = 0.0
+                for vals in all_chunks_raw:
+                    mod_vals = np.zeros_like(vals)
+                    if n_elements == 2:
+                        mod_vals[:, 0] = vals[:, 0] + (vals[:, 1] * C_ratios[0])
+                        mod_vals[:, 1] = vals[:, 1] + (vals[:, 0] * C_ratios[1])
+                    else:
+                        for idx in range(n_elements): 
+                            mod_vals[:, idx] = vals[:, idx] + (vals[:, idx] * C_ratios[idx])
+                            
+                    for idx in range(n_elements):
+                        if (col_maxs[idx] - col_mins[idx]) >= 2: 
+                            mod_vals[:, idx] = vals[:, idx].mean()
+                            
+                    if n_elements == 1:
+                        lasts = mod_vals.flatten()
+                        lasts = np.where(lasts == 0, 0.001, lasts)
+                        O_pts_sum += np.sum(np.abs(lasts))
+                    else:
+                        lasts = mod_vals[:, -1]
+                        firsts = mod_vals[:, 0]
+                        calc_lasts = np.where(lasts == 0, 0.001, np.ceil(lasts))
+                        components = K + firsts
+                        components = np.where(components == 0, 0.001, components)
+                        O_pts_sum += np.sum(np.abs(calc_lasts * components))
+
+                if len(set(firsts_kg)) == 1:
+                    O_prime = (O_pts_sum / total_rows) + (1.0 * K)
+                else:
+                    abs_firsts = np.abs(np.array(firsts_kg, dtype=np.float64))
+                    R_filter = (abs_firsts.min() / abs_firsts.max()) * K if abs_firsts.max() != 0 else 0
+                    O_prime = O_pts_sum + R_filter
+                    
+                O_prime = abs(O_prime)
+                base_candidate = int(g)
+                log_base = float(base_candidate + 1) if base_candidate % 2 != 0 else float(base_candidate)
+                if log_base <= 1: log_base = 2.0
+                
+                O_final = O_prime if (O_prime <= 1 or log_base <= 1) else math.log(O_prime, log_base)
+
+                self.root.ids.output_k_g.text = f"प्रोसेस्ड रोज़ (Rows): {total_rows:,} | K: {K}"
+                self.root.ids.output_prime.text = f"ओपटाज़' (O'): {O_prime:.6f}"
+                self.root.ids.output_final.text = f"FINAL OPATAZ: {O_final:.6f}"
+
+            except Exception as e:
+                self.root.ids.output_final.text = "CSV फाइल गणना में त्रुटि!"
+        else:
+            self.root.ids.output_final.text = "कृपया इनपुट दें या फ़ाइल चुनें!"
 
 if __name__ == '__main__':
     OpatazApp().run()
+            
