@@ -19,8 +19,12 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 1.0.0
 
 # (list) Application requirements
-# यहाँ हमने वे सभी लाइब्रेरीज़ लिख दी हैं जिनकी आपके ओपटाज़ मैथ को ज़रूरत है
+# यहाँ हमने सभी ज़रूरी प्रीमियम डिज़ाइन और लाइब्रेरीज़ को जोड़ दिया है
 requirements = python3,kivy==2.3.0,kivymd==1.2.0,numpy,pandas,pillow,materialyoucolor,exceptiongroup,asyncgui
+
+# (str) Icon of the application
+# यहाँ हमने आपके लोगो (Icon) की फ़ाइल का नाम सेट कर दिया है
+icon.filename = icon.png
 
 # (str) Supported orientations
 orientation = portrait
