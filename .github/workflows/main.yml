@@ -1,4 +1,4 @@
-name: Build Opataz APK
+name: Build Opataz Premium APK
 
 on:
   push:
