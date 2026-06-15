@@ -19,11 +19,9 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 1.0.0
 
 # (list) Application requirements
-# यहाँ हमने सभी ज़रूरी प्रीमियम डिज़ाइन और लाइब्रेरीज़ को जोड़ दिया है
 requirements = python3,kivy==2.3.0,kivymd==1.2.0,numpy,pandas,pillow,materialyoucolor,exceptiongroup,asyncgui
 
 # (str) Icon of the application
-# यहाँ हमने आपके लोगो (Icon) की फ़ाइल का नाम सेट कर दिया है
 icon.filename = icon.png
 
 # (str) Supported orientations
@@ -43,10 +41,13 @@ android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, INTERNET
 android.api = 33
 
 # (int) Minimum API your APK will support
-android.minapi = 21
+android.minapi = 24
 
 # (str) Android NDK version to use
 android.ndk = 25b
+
+# (bool) Automatically accept SDK licenses
+android.accept_sdk_license = True
 
 # (bool) Use --private data storage for binary instead of app data
 android.private_storage = True
