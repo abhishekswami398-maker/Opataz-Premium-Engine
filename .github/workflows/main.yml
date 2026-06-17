@@ -5,7 +5,6 @@ on:
 
 jobs:
   build:
-    # तुरंत सर्वर अलॉट होने के लिए सबसे लेटेस्ट और एक्टिव एनवायरनमेंट
     runs-on: ubuntu-latest
 
     steps:
@@ -26,7 +25,6 @@ jobs:
     - name: Install Pure Core Dependencies with Fix
       run: |
         sudo apt-get update
-        # --fix-broken का इस्तेमाल करके सिस्टम एरर को जबरदस्ती बायपास किया गया है
         sudo apt-get install -y --fix-broken build-essential ccache git python3-dev libffi-dev libssl-dev unzip autoconf automake libtool pkg-config cmake
 
     - name: Install Buildozer and Fixed Cython
