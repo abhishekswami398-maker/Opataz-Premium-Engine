@@ -5,8 +5,8 @@ on:
 
 jobs:
   build:
-    # उबंटू 24 के कड़े नियमों से बचने के लिए इसे सबसे स्थिर 22.04 पर लॉक कर रहे हैं
-    runs-on: ubuntu-22.04
+    # सबसे स्थिर और बिना किसी पैकेज टकराव वाला पुराना सर्वर एनवायरनमेंट
+    runs-on: ubuntu-20.04
 
     steps:
     - name: Checkout Code
@@ -23,10 +23,11 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Install System Dependencies
+    - name: Install Pure Core Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential ccache git python3-dev libffi-dev libssl-dev libgstreamer1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good unzip autoconf automake libtool pkg-config cmake
+        # यहाँ से सभी विवादास्पद gstreamer पैकेजेस को पूरी तरह हटा दिया गया है
+        sudo apt-get install -y build-essential ccache git python3-dev libffi-dev libssl-dev unzip autoconf automake libtool pkg-config cmake
 
     - name: Install Buildozer and Fixed Cython
       run: |
@@ -64,7 +65,6 @@ jobs:
       run: |
         rm -rf ~/.buildozer
         rm -rf .buildozer/
-        # जावा होम और आर्किटेक्चर पाथ सेट करना ताकि टूलचेन कभी फेल न हो
         export JAVA_HOME=$JAVA_HOME_17_X64
         export PATH=$JAVA_HOME/bin:$PATH
         YES=1 buildozer -v android debug
