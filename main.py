@@ -12,7 +12,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import BooleanProperty, StringProperty
 
 # =============================================================================
-# 🔥 शुद्ध पायथन महा-इंजन (100% सटीक ऑफलाइन नियमों के साथ)
+# 🔥 शुद्ध पायथन महा-इंजन (C++ engine.cpp के 100% सटीक ऑफलाइन नियमों के साथ)
 # =============================================================================
 class OpatazPythonEngine:
     @staticmethod
@@ -130,6 +130,24 @@ class OpatazPythonEngine:
             O *= 0.001 if t == 0.0 else t
         return abs(O)
 
+    @staticmethod
+    def accumulate_frequency_chunk(current_aavriti, chunk_flat, x, g, K):
+        if g <= 0.0 or K <= 0: return current_aavriti
+        epsilon = 1e-9
+        for v in chunk_flat:
+            diff = v - x
+            if diff < -epsilon:
+                current_aavriti[0] += 1
+                continue
+            if diff < 0.0: diff = 0.0
+            index = int(math.floor(diff / g))
+            if index >= K or v >= (x + K * g - epsilon):
+                index = K - 1
+            if index < 0:
+                index = 0
+            current_aavriti[index] += 1
+        return current_aavriti
+
 # =============================================================================
 # 🎨 UI डिज़ाइन इंटरफ़ेस लेआउट (KivyMD)
 # =============================================================================
@@ -243,7 +261,7 @@ MDScreenManager:
 
                         MDTextField:
                             id: manual_input_data
-                            hint_text: "यहाँ चेन्स इनपुट करें (जैसे: 12, -4, 0...)"
+                            hint_text: "यहाँ चेन्स इनपुट करें (जैसे: 5, -3, 0...)"
                             multiline: True
                             mode: "rectangle"
                             size_hint_y: None
@@ -524,17 +542,4 @@ class MainScreen(Screen):
             
             firsts_kg = [c[0] for c in raw_chains if c]
             S_kg = OpatazPythonEngine.calc_S(firsts_kg)
-            V_kg = OpatazPythonEngine.calc_sigma(A0_kg, S_kg)
-            
-            all_flat = [x for c in raw_chains for x in c]
-            if not all_flat: return
-            N_kg = len(all_flat)
-            K_kg = OpatazPythonEngine.calc_K(N_kg, V_kg)
-            g_kg = OpatazPythonEngine.calc_g(max(all_flat), min(all_flat), K_kg)
-            
-            resolved_chains = []
-            for info in chains_info:
-                rc, _ = OpatazPythonEngine.detect_and_resolve_loop(info['elements'], K_kg, info['has_dots'])
-                resolved_chains.append(rc)
-                
-            mod_chains = OpatazPythonEngine.apply_c_ratio_manual(resolve
+            sigma_kg = OpatazPyt
