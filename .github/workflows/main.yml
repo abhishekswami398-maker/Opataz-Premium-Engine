@@ -1,8 +1,6 @@
-name: Build APK
+name: Build Android APK
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -10,29 +8,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout Code
       uses: actions/checkout@v4
 
-    # यहाँ हम अपनी मर्ज़ी का बिल्कुल स्टेबल पाइथन वर्शन सेट कर रहे हैं
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.10'
 
-    - name: Install Dependencies
+    - name: Install System Dependencies
       run: |
-        sudo apt update
-        sudo apt install -y libsqlite3-dev gapc libffi-dev libssl-dev
+        sudo apt-get update
+        sudo apt-get install -y libffi-dev libssl-dev build-essential ccache git python3-dev libgstreamer1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav libmtp-dev unzip apktool
+
+    - name: Install Buildozer and Cython
+      run: |
         pip install --upgrade pip
-        pip install "cython<3.0.0" buildozer
+        pip install buildozer cython virtualenv
 
     - name: Build with Buildozer
       run: |
-        yes | buildozer -v android debug
+        YES=1 buildozer -v android debug
+      env:
+        REQS: "python3,kivy,kivymd"
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: package
+        name: Android-APK
         path: bin/*.apk
         
