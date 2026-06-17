@@ -22,14 +22,15 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Install Pure Core Dependencies with Fix
+    - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y --fix-broken build-essential ccache git python3-dev libffi-dev libssl-dev unzip autoconf automake libtool pkg-config cmake
+        sudo apt-get install -y build-essential ccache git python3-dev libffi-dev libssl-dev unzip autoconf automake libtool pkg-config cmake
 
     - name: Install Buildozer and Fixed Cython
       run: |
         pip install --upgrade pip
+        # सबसे स्थिर बिल्ड के लिए cython का यह वर्जन जरूरी है
         pip install "cython<3.0.0" buildozer virtualenv
 
     - name: Auto-Generate Clean Buildozer Spec
@@ -59,12 +60,21 @@ jobs:
         warn_on_root = 1
         EOT
 
-    - name: Clean Cache and Build Android APK
+    - name: Clear Pre-Installed GitHub NDK Path
       run: |
+        # यहाँ हम गिटहब के गलत r27 NDK को पूरी तरह अनसेट कर रहे हैं ताकि लफड़ा खत्म हो जाए
+        unset ANDROID_NDK_HOME
+        unset ANDROID_NDK_ROOT
         rm -rf ~/.buildozer
         rm -rf .buildozer/
+
+    - name: Build with Buildozer
+      run: |
+        # एनवायरनमेंट वेरिएबल्स को हटाकर शुद्ध रखना ताकि बिल्डोइज़र खुद अपना सही r25b सेट करे
         export JAVA_HOME=$JAVA_HOME_17_X64
         export PATH=$JAVA_HOME/bin:$PATH
+        unset ANDROID_NDK_HOME
+        unset ANDROID_NDK_ROOT
         YES=1 buildozer -v android debug
 
     - name: Upload APK Artifact
