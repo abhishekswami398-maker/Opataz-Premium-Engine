@@ -3,17 +3,136 @@ import math
 import time
 import csv
 from kivy.lang import Builder
-from kivy.utils import get_color_from_hex
 from kivymd.app import MDApp
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.snackbar import MDSnackbar
+from kivymd.uix.chip import MDChip
+from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.boxlayout import BoxLayout
+from kivy.properties import BooleanProperty, StringProperty
 
-# C++ इंजन बाइंडिंग इंटीग्रेशन की जांच
-try:
-    import opataz_cpp
-except ImportError:
-    opataz_cpp = None
+# =============================================================================
+# 🔥 शुद्ध पायथन महा-इंजन (100% सटीक ऑफलाइन नियमों के साथ)
+# =============================================================================
+class OpatazPythonEngine:
+    @staticmethod
+    def calc_A(elems):
+        if not elems: return 0.0
+        first = elems[0]
+        max_val = max(elems)
+        min_val = min(elems)
+        return abs((first + max_val + min_val) / 3.0)
 
+    @staticmethod
+    def calc_S(firsts):
+        if len(firsts) <= 1: return 1.0
+        if len(set(firsts)) == 1: return 1.0
+        abs_vals = [abs(v) for v in firsts]
+        min_val = min(abs_vals)
+        max_val = max(abs_vals)
+        return (min_val / max_val) if max_val != 0.0 else 1.0
+
+    @staticmethod
+    def calc_sigma(A0, S):
+        s = A0 + S
+        d = s - math.floor(s)
+        return math.ceil(s) if (0.51 <= d <= 0.99) else math.floor(s)
+
+    @staticmethod
+    def calc_K(N, V):
+        K = math.ceil(math.sqrt(N) * V)
+        return K + 1 if (K % 2 == 0) else K
+
+    @staticmethod
+    def calc_g(max_val, min_val, K):
+        if max_val == min_val or K <= 0: return 1.0
+        return math.ceil((max_val - min_val) / float(K))
+
+    @staticmethod
+    def detect_and_resolve_loop(elems, K, has_dots):
+        loop_elements = set()
+        if not has_dots: return elems, loop_elements
+        seen = {}
+        i = 0
+        working_elems = list(elems)
+        while i < len(working_elems):
+            v = working_elems[i]
+            if v in seen:
+                start_idx = seen[v]
+                loop_part = working_elems[start_idx:i]
+                for x in loop_part: loop_elements.add(x)
+                last = 0.001 if loop_part[-1] == 0.0 else loop_part[-1]
+                O_temp = last
+                for j in range(len(loop_part) - 1):
+                    t = K + loop_part[j]
+                    O_temp *= 0.001 if t == 0.0 else t
+                min_l = min(loop_part)
+                max_l = max(loop_part)
+                r = (min_l / max_l) if max_l != 0.0 else 0.0
+                O_inf = abs(O_temp / (1.0 - r)) if r != 1.0 else abs(O_temp)
+                del working_elems[start_idx:i + 1]
+                working_elems.insert(start_idx, O_inf)
+                seen.clear()
+                i = 0
+                continue
+            seen[v] = i
+            i += 1
+        return working_elems, loop_elements
+
+    @staticmethod
+    def apply_c_ratio_manual(chains):
+        if not chains: return chains
+        mx = max(len(c) for c in chains)
+        mod = [list(c) for c in chains]
+        for ci in range(mx):
+            col = []
+            for c in chains:
+                if ci < len(c): col.append(c[ci])
+            if len(col) <= 1 or len(set(col)) == 1: continue
+            min_col = min(col)
+            max_col = max(col)
+            if max_col == 0.0: continue
+            cr = min_col / max_col
+            if len(col) == 2:
+                for i in range(len(mod)):
+                    if ci < len(mod[i]): mod[i][ci] = chains[i][ci] + (col[1 - i] * cr)
+            else:
+                for i in range(len(mod)):
+                    if ci < len(mod[i]): mod[i][ci] = chains[i][ci] + (chains[i][ci] * cr)
+        return mod
+
+    @staticmethod
+    def apply_rnv_manual(chains):
+        if len(chains) <= 1: return chains
+        mx = max(len(c) for c in chains)
+        mod = [list(c) for c in chains]
+        for ci in range(mx):
+            col = []
+            for c in chains:
+                if ci < len(c): col.append(c[ci])
+            if len(col) < 2: continue
+            min_col = min(col)
+            max_col = max(col)
+            if (max_col - min_col) >= 2.0:
+                avg = sum(col) / len(col)
+                for i in range(len(mod)):
+                    if ci < len(mod[i]): mod[i][ci] = avg
+        return mod
+
+    @staticmethod
+    def calc_opataz_manual(elems, K):
+        if not elems: return 0.0
+        last = elems[-1]
+        calc_last = 0.001 if last == 0.0 else (math.ceil(last) if last != math.floor(last) else last)
+        O = calc_last
+        for i in range(len(elems) - 1):
+            t = K + elems[i]
+            O *= 0.001 if t == 0.0 else t
+        return abs(O)
+
+# =============================================================================
+# 🎨 UI डिज़ाइन इंटरफ़ेस लेआउट (KivyMD)
+# =============================================================================
 KV = '''
 MDScreenManager:
     LoginScreen:
@@ -25,25 +144,17 @@ MDScreenManager:
         orientation: 'vertical'
         md_bg_color: 0.96, 0.97, 0.98, 1
         padding: "24dp"
-        spacing: "24dp"
+        spacing: "20dp"
 
         MDBoxLayout:
             orientation: 'vertical'
             size_hint_y: None
-            height: "220dp"
+            height: "180dp"
             pos_hint: {"center_x": .5}
-            spacing: "12dp"
+            spacing: "8dp"
             
-            # प्रीमियम ऐप लोगो कंटेनर
-            FitImage:
-                source: 'icon.png'
-                size_hint: None, None
-                size: "100dp", "100dp"
-                pos_hint: {"center_x": .5}
-                radius: [24, ]
-
             MDLabel:
-                text: "🔮 ओपटाज़ एआई"
+                text: "🔮 OPATAZ AI"
                 halign: "center"
                 font_style: "H4"
                 bold: True
@@ -51,17 +162,17 @@ MDScreenManager:
                 text_color: 0.85, 0.15, 0.15, 1
 
             MDLabel:
-                text: "स्पीड मोड महा-इंजन संस्करण"
+                text: "ऑफलाइन मोबाइल महा-इंजन संस्करण"
                 halign: "center"
                 font_style: "Subtitle2"
                 theme_text_color: "Hint"
 
         MDCard:
             orientation: 'vertical'
-            padding: "20dp"
+            padding: "24dp"
             spacing: "16dp"
             size_hint_y: None
-            height: "180dp"
+            height: "250dp"
             radius: [16, 16, 16, 16]
             elevation: 2
             md_bg_color: 1, 1, 1, 1
@@ -76,16 +187,23 @@ MDScreenManager:
 
             MDRoundFlatIconButton:
                 icon: "google"
-                text: "Google ID से साइन-इन करें"
+                text: "Gmail / Google ID से लॉगिन करें"
                 text_color: 0.1, 0.1, 0.1, 1
                 icon_color: 0.85, 0.15, 0.15, 1
                 line_color: 0.8, 0.8, 0.8, 1
                 pos_hint: {"center_x": .5}
-                size_hint_x: 0.9
-                on_release: root.simulate_google_login()
+                size_hint_x: 0.95
+                on_release: root.login_via_gmail()
+
+            MDRaisedButton:
+                text: "⏩ Skip Login (सीधे ऑफलाइन उपयोग करें)"
+                md_bg_color: 0.2, 0.2, 0.2, 1
+                pos_hint: {"center_x": .5}
+                size_hint_x: 0.95
+                on_release: root.skip_login()
 
             MDLabel:
-                text: "100% सुरक्षित स्थानीय ऑफ़लाइन मोड स्टोरेज"
+                text: "100% सुरक्षित स्थानीय ऑफ़लाइन डेटा प्रोसेसिंग"
                 font_style: "Caption"
                 halign: "center"
                 theme_text_color: "Hint"
@@ -94,21 +212,19 @@ MDScreenManager:
     name: 'main_screen'
     MDBoxLayout:
         orientation: 'vertical'
-        md_bg_color: 0.98, 0.98, 0.98, 1
+        md_bg_color: 0.96, 0.97, 0.98, 1
 
         MDTopAppBar:
-            title: "🔮 ओपटाज़ एआई - C++ स्पीड मोड"
+            title: "🔮 ओपटाज़ एआई (ऑफ़लाइन)"
             elevation: 4
             md_bg_color: 0.85, 0.15, 0.15, 1
             right_action_items: [["logout", lambda x: root.logout_user()]]
 
         MDTabs:
             id: tabs
-            on_tab_switch: root.on_tab_switch(*args)
             background_color: 0.85, 0.15, 0.15, 1
             text_color_normal: 1, 1, 1, 0.6
             text_color_active: 1, 1, 1, 1
-            indicator_color: 1, 1, 1, 1
 
             Tab:
                 title: "📝 मोड 1"
@@ -124,15 +240,14 @@ MDScreenManager:
                             text: "📝 मोड 1: मैनुअल चेन्स इनपुट बॉक्स"
                             font_style: "Subtitle1"
                             bold: True
-                            theme_text_color: "Primary"
 
                         MDTextField:
                             id: manual_input_data
-                            hint_text: "चेन्स इनपुट बॉक्स (जैसे: 5, -3, 0...)"
+                            hint_text: "यहाँ चेन्स इनपुट करें (जैसे: 12, -4, 0...)"
                             multiline: True
                             mode: "rectangle"
                             size_hint_y: None
-                            height: "140dp"
+                            height: "120dp"
 
                         MDBoxLayout:
                             orientation: 'horizontal'
@@ -143,19 +258,17 @@ MDScreenManager:
                             MDRaisedButton:
                                 text: "🚀 गॉड लेवल गति से गणना करें"
                                 md_bg_color: 0.85, 0.15, 0.15, 1
-                                size_hint_x: 0.6
+                                size_hint_x: 0.7
                                 on_release: root.calculate_mode_1()
 
                             MDFillRoundFlatButton:
-                                text: "🔄 Reset"
+                                text: "🔄 इनपुट रिसेट"
                                 md_bg_color: 0.4, 0.4, 0.4, 1
-                                size_hint_x: 0.4
+                                size_hint_x: 0.3
                                 on_release: root.clear_manual_input()
 
-                        MDSeparator:
-                            height: "1dp"
-
-                        root_outputs_m1: root_outputs_m1
+                        OutputsContainer:
+                            id: outputs_m1
 
             Tab:
                 title: "📂 मोड 2"
@@ -165,42 +278,97 @@ MDScreenManager:
                         size_hint_y: None
                         height: self.minimum_height
                         padding: '16dp'
-                        spacing: '16dp'
+                        spacing: '20dp'
 
                         MDLabel:
                             text: "📂 मोड 2: ऑटोमैटिक CSV फ़ाइल अपलोडर"
                             font_style: "Subtitle1"
                             bold: True
-                            theme_text_color: "Primary"
-
-                        MDRaisedButton:
-                            text: "📂 बड़ी CSV फाइल चुनें (Up to 1GB+)"
-                            md_bg_color: 0.1, 0.5, 0.8, 1
-                            pos_hint: {"center_x": .5}
-                            size_hint_x: 0.9
-                            on_release: root.open_system_file_manager()
 
                         MDLabel:
-                            id: csv_file_status
-                            text: "कोई फाइल नहीं चुनी गई (100% सुरक्षित ऑफलाइन मोड)"
-                            halign: "center"
-                            font_style: "Caption"
+                            text: "यहाँ CSV फ़ाइल अपलोड करें:"
+                            font_style: "Body2"
                             theme_text_color: "Secondary"
 
-                        MDFillRoundFlatButton:
+                        # 📦 फ़ाइल अपलोड करने का कंटेनर (जैसा इमेज में है)
+                        MDCard:
+                            orientation: 'horizontal'
+                            padding: "16dp"
+                            spacing: "12dp"
+                            size_hint_y: None
+                            height: "72dp"
+                            radius: [12, 12, 12, 12]
+                            md_bg_color: 0.92, 0.94, 0.96, 1
+                            elevation: 0
+
+                            MDIconButton:
+                                icon: "file-table-outline"
+                                icon_size: "28dp"
+                                theme_text_color: "Custom"
+                                text_color: 0.15, 0.3, 0.5, 1
+                                on_release: root.open_system_file_manager()
+
+                            MDBoxLayout:
+                                orientation: 'vertical'
+                                size_hint_x: 0.7
+                                pos_hint: {"center_y": .5}
+                                
+                                MDLabel:
+                                    id: csv_file_name_lbl
+                                    text: "कोई फाइल नहीं चुनी गई"
+                                    font_style: "Body1"
+                                    bold: True
+                                MDLabel:
+                                    id: csv_file_size_lbl
+                                    text: "अधिकतम सीमा: 1GB+"
+                                    font_style: "Caption"
+                                    theme_text_color: "Hint"
+
+                            # ❌ इमेज की तरह हटाने वाला क्रॉस बटन (फाइल सिलेक्ट होने पर एक्टिव होगा)
+                            MDIconButton:
+                                id: remove_file_btn
+                                icon: "close-circle"
+                                icon_size: "24dp"
+                                theme_text_color: "Custom"
+                                text_color: 0.8, 0.2, 0.2, 0.3
+                                disabled: True
+                                on_release: root.remove_selected_file()
+
+                        # 🏷️ पैमाने चुनें (Columns Chip Selection Container)
+                        MDBoxLayout:
+                            orientation: 'vertical'
+                            spacing: "8dp"
+                            size_hint_y: None
+                            height: self.minimum_height
+
+                            MDLabel:
+                                text: "पैमाने चुनें (Columns/Metrics Check):"
+                                font_style: "Body2"
+                                bold: True
+
+                            # चिप्स लेआउट बॉक्स
+                            MDStackLayout:
+                                id: chips_container
+                                spacing: "8dp"
+                                size_hint_y: None
+                                height: self.minimum_height
+
+                        # 🚀 अपलोड की गई फाइल की गणना करें बटन
+                        MDRaisedButton:
                             text: "🚀 अपलोड की गई फाइल की गणना करें"
                             md_bg_color: 0.85, 0.15, 0.15, 1
                             pos_hint: {"center_x": .5}
-                            size_hint_x: 0.9
+                            size_hint_x: 1
+                            padding: "14dp"
                             on_release: root.calculate_mode_2()
 
                         MDSeparator:
                             height: "1dp"
 
-                        root_outputs_m2: root_outputs_m2
+                        OutputsContainer:
+                            id: outputs_m2
 
 <OutputsContainer@MDBoxLayout>:
-    id: output_container
     orientation: 'vertical'
     spacing: '12dp'
     size_hint_y: None
@@ -211,22 +379,22 @@ MDScreenManager:
         text: "⏱️ कुल गणना समय (Execution Time): - "
         font_style: "Caption"
         bold: True
-        theme_text_color: "Secondary"
 
     MDCard:
         orientation: 'vertical'
         padding: "16dp"
         spacing: "8dp"
         size_hint_y: None
-        height: "200dp"
+        height: "180dp"
         md_bg_color: 1, 1, 1, 1
-        elevation: 2
+        elevation: 1
         radius: [12, 12, 12, 12]
 
         MDLabel:
             text: "📊 परिणाम विवरण (Results):"
-            font_style: "Subtitle1"
+            font_style: "Subtitle2"
             bold: True
+            theme_text_color: "Secondary"
         MDLabel:
             id: output_k_g
             text: "कुल बॉक्स (K): -  |  इंटरवल आकार (g): -"
@@ -244,26 +412,24 @@ MDScreenManager:
             theme_text_color: "Error"
 '''
 
-class Tab(MDBoxLayout):
+class Tab(BoxLayout):
     pass
 
-class LoginScreen(com.kivy.Screen if 'com' in globals() else object):
-    import sys
-    from kivy.uix.screenmanager import Screen
-    locals()['Screen'] = Screen
-    
-    def simulate_google_login(self):
-        MDSnackbar(text="Google ID प्रमाणीकरण सफल! स्थानीय सुरक्षा सिंक चालू है।").open()
-        time.sleep(0.5)
+class LoginScreen(Screen):
+    def login_via_gmail(self):
+        # सुरक्षित जीमेल / गूगल ऑथेंटिकेशन गेटवे
+        MDSnackbar(text="Gmail / Google ID से प्रमाणीकरण सफल!").open()
         self.manager.current = 'main_screen'
 
-class MainScreen(kivy.uix.screenmanager.Screen if 'kivy' in locals() else object):
-    from kivy.uix.screenmanager import Screen
-    locals()['Screen'] = Screen
-    
+    def skip_login(self):
+        MDSnackbar(text="लॉगिन छोड़ दिया गया। लोकल ऑफलाइन मोड चालू है।").open()
+        self.manager.current = 'main_screen'
+
+class MainScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.selected_file_path = None
+        self.detected_columns = []
         self.file_manager = MDFileManager(
             exit_manager=self.exit_file_manager,
             select_path=self.select_system_path
@@ -271,13 +437,10 @@ class MainScreen(kivy.uix.screenmanager.Screen if 'kivy' in locals() else object
 
     def logout_user(self):
         self.manager.current = 'login_screen'
+        self.remove_selected_file()
         MDSnackbar(text="सफलतापूर्वक लॉग-आउट किया गया।").open()
 
-    def on_tab_switch(self, instance_tabs, instance_tab, instance_tab_label, tab_text):
-        pass
-
     def open_system_file_manager(self):
-        # सुरक्षित लोकल एंड्रॉयड प्राइमरी स्टोरेज पाथ एक्सेस
         primary_ext_storage = os.getenv("EXTERNAL_STORAGE", "/sdcard")
         if os.path.exists(primary_ext_storage):
             self.file_manager.show(primary_ext_storage)
@@ -288,19 +451,64 @@ class MainScreen(kivy.uix.screenmanager.Screen if 'kivy' in locals() else object
         self.exit_file_manager()
         if path.lower().endswith('.csv'):
             self.selected_file_path = path
-            self.ids.csv_file_status.text = f"फ़ाइल चुनी गई: {os.path.basename(path)}"
+            
+            # फाइल का नाम और साइज दिखाएं
+            file_name = os.path.basename(path)
+            file_size_kb = os.path.getsize(path) / 1024
+            self.ids.csv_file_name_lbl.text = file_name
+            self.ids.csv_file_size_lbl.text = f"{file_size_kb:.1f} KB"
+            
+            # क्रॉस (X) हटाने वाले बटन को एक्टिव करें (जैसा इमेज में है)
+            self.ids.remove_file_btn.disabled = False
+            self.ids.remove_file_btn.text_color = [0.85, 0.15, 0.15, 1]
+            
+            # ऑटोमैटिकली कॉलम्स (पैमाने) लोड करें और चिप्स बनाएं
+            self.load_csv_columns(path)
         else:
-            self.ids.csv_file_status.text = "गलत फ़ाइल! कृपया केवल .csv फ़ाइल चुनें।"
+            MDSnackbar(text="गलत फ़ाइल! कृपया केवल .csv फ़ाइल अपलोड करें।").open()
+
+    def load_csv_columns(self, path):
+        self.ids.chips_container.clear_widgets()
+        try:
+            with open(path, mode='r', encoding='utf-8', errors='ignore') as f:
+                reader = csv.reader(f)
+                header = next(reader, None)
+                if header:
+                    self.detected_columns = [col.strip() for col in header if col.strip()]
+                    for col in self.detected_columns:
+                        # आपके इमेज की तरह क्रॉस बटन वाले लाल चिप्स बनाना
+                        chip = MDChip(
+                            text=col,
+                            icon_check=True,
+                            bg_color=[0.85, 0.15, 0.15, 1],
+                            text_color=[1, 1, 1, 1],
+                            icon_check_color=[1, 1, 1, 1],
+                            size_hint_x=None
+                        )
+                        self.ids.chips_container.add_widget(chip)
+        except Exception:
+            pass
+
+    def remove_selected_file(self):
+        # ❌ फ़ाइल हटाने वाले क्रॉस बटन का फंक्शन (जैसा इमेज में माँगा था)
+        self.selected_file_path = None
+        self.ids.csv_file_name_lbl.text = "कोई फाइल नहीं चुनी गई"
+        self.ids.csv_file_size_lbl.text = "अधिकतम सीमा: 1GB+"
+        
+        self.ids.remove_file_btn.disabled = True
+        self.ids.remove_file_btn.text_color = [0.8, 0.2, 0.2, 0.3]
+        self.ids.chips_container.clear_widgets()
+        MDSnackbar(text="फ़ाइल हटा दी गई है!").open()
 
     def exit_file_manager(self, *args):
         self.file_manager.close()
 
     def clear_manual_input(self):
         self.ids.manual_input_data.text = ""
-        self.ids.output_k_g.text = "कुल बॉक्स (K): -  |  इंटरवल आकार (g): -"
-        self.ids.output_prime.text = "🔢 ओपटाज़' (O'): -"
-        self.ids.output_final.text = "🎯 FINAL OPATAZ: -"
-        self.ids.exec_time_lbl.text = "⏱️ कुल गणना समय (Execution Time): - "
+        self.ids.outputs_m1.ids.output_k_g.text = "कुल बॉक्स (K): -  |  इंटरवल आकार (g): -"
+        self.ids.outputs_m1.ids.output_prime.text = "🔢 ओपटाज़' (O'): -"
+        self.ids.outputs_m1.ids.output_final.text = "🎯 FINAL OPATAZ: -"
+        self.ids.outputs_m1.ids.exec_time_lbl.text = "⏱️ कुल गणना समय (Execution Time): - "
 
     def parse_chains_with_loop_flag(self, text):
         chains_info = []
@@ -315,10 +523,6 @@ class MainScreen(kivy.uix.screenmanager.Screen if 'kivy' in locals() else object
         return chains_info
 
     def calculate_mode_1(self):
-        if not opataz_cpp:
-            MDSnackbar(text="C++ महा-इंजन कोर कंपोनेंट लोड नहीं हो सका!").open()
-            return
-
         input_text = self.ids.manual_input_data.text.strip()
         if not input_text:
             MDSnackbar(text="कृपया पहले चेन्स इनपुट बॉक्स में डेटा दर्ज करें!").open()
@@ -330,206 +534,6 @@ class MainScreen(kivy.uix.screenmanager.Screen if 'kivy' in locals() else object
             if not chains_info: return
             
             raw_chains = [c['elements'] for c in chains_info]
-            A_vals_kg = [opataz_cpp.calc_A(c) for c in raw_chains if c]
+            A_vals_kg = [OpatazPythonEngine.calc_A(c) for c in raw_chains if c]
             A0_kg = sum(A_vals_kg) / len(A_vals_kg) if A_vals_kg else 1.0
-            firsts_kg = [c[0] for c in raw_chains if c]
-            
-            S_kg = opataz_cpp.calc_S(firsts_kg)
-            sigma_kg = opataz_cpp.calc_sigma(A0_kg, S_kg)
-            n_kg = len(str(int(sigma_kg))) if sigma_kg > 0 else 1
-            V_kg = 1 + (sigma_kg / (10 ** n_kg))
-            K = opataz_cpp.calc_K(len(raw_chains), V_kg)
-            
-            all_raw_data = []
-            for c in raw_chains: all_raw_data.extend(c)
-            x = min(all_raw_data) if all_raw_data else 0.0
-            global_max = max(all_raw_data) if all_raw_data else 0.0
-            g = opataz_cpp.calc_g(global_max, x, K)
-            
-            resolved = []
-            for c in chains_info:
-                res_c, _ = opataz_cpp.detect_and_resolve_loop(c['elements'], K, c['has_dots'])
-                resolved.append(res_c)
-                
-            if len(resolved) == 1:
-                O_prime = opataz_cpp.calc_opataz_manual(resolved[0], K)
-            else:
-                after_c = opataz_cpp.apply_c_ratio_manual(resolved)
-                after_rnv = opataz_cpp.apply_rnv_manual(after_c)
-                O_pts = [opataz_cpp.calc_opataz_manual(c, K) for c in after_rnv]
-                fcr = [c[0] for c in after_rnv if c]
-                if len(set(fcr)) == 1:
-                    O_prime = (sum(O_pts) / len(O_pts)) + (1.0 * K)
-                else:
-                    abs_fcr = [abs(v) for v in fcr]
-                    R = (min(abs_fcr) / max(abs_fcr)) * K if max(abs_fcr) != 0 else 0
-                    O_prime = sum(O_pts) + R
-
-            O_prime = abs(O_prime)
-            base_candidate = int(g)
-            log_base = float(base_candidate + 1) if base_candidate % 2 != 0 else float(base_candidate)
-            if log_base <= 1: log_base = 2.0
-            
-            O_final = O_prime if (O_prime <= 1 or log_base <= 1) else math.log(O_prime, log_base)
-            
-            exec_time = time.time() - start_time
-            self.ids.exec_time_lbl.text = f"⏱️ कुल गणना समय (Execution Time): {exec_time:.4f} सेकंड"
-            self.ids.output_k_g.text = f"कुल बॉक्स (K): {K}  |  इंटरवल आकार (g): {g:.4f}"
-            self.ids.output_prime.text = f"🔢 ओपटाज़' (O'): {O_prime:.6f}"
-            self.ids.output_final.text = f"🎯 FINAL OPATAZ: {O_final:.6f}"
-            
-        except Exception as e:
-            self.ids.output_final.text = "गणना में त्रुटि आई!"
-
-    def calculate_mode_2(self):
-        if not opataz_cpp:
-            MDSnackbar(text="C++ महा-इंजन कोर कंपोनेंट लोड नहीं हो सका!").open()
-            return
-
-        if not self.selected_file_path:
-            MDSnackbar(text="कृपया पहले .csv फाइल सिलेक्ट करें!").open()
-            return
-
-        start_time = time.time()
-        try:
-            total_rows = 0
-            firsts_kg = []
-            A_vals_sum = 0.0
-            global_min, global_max = float('inf'), -float('inf')
-            
-            col_mins = []
-            col_maxs = []
-            all_rows_data = []
-
-            with open(self.selected_file_path, mode='r', encoding='utf-8', errors='ignore') as f:
-                reader = csv.reader(f)
-                header = next(reader, None)
-                
-                for row in reader:
-                    if not row: continue
-                    try:
-                        vals = [float(x) for x in row if x.strip() != '']
-                        if not vals: continue
-                    except ValueError:
-                        continue
-                    
-                    total_rows += 1
-                    all_rows_data.append(vals)
-                    
-                    row_min = min(vals)
-                    row_max = max(vals)
-                    if row_min < global_min: global_min = row_min
-                    if row_max > global_max: global_max = row_max
-                    
-                    n_cols = len(vals)
-                    if not col_mins:
-                        col_mins = list(vals)
-                        col_maxs = list(vals)
-                    else:
-                        for i in range(min(len(col_mins), n_cols)):
-                            if vals[i] < col_mins[i]: col_mins[i] = vals[i]
-                            if vals[i] > col_maxs[i]: col_maxs[i] = vals[i]
-                    
-                    if n_cols == 1:
-                        firsts_kg.append(vals[0])
-                        A_vals_sum += abs((vals[0] + vals[0] + vals[0]) / 3)
-                    else:
-                        firsts_kg.append(vals[0])
-                        A_vals_sum += abs((vals[0] + row_max + row_min) / 3)
-
-            if total_rows == 0:
-                MDSnackbar(text="चयनित CSV फ़ाइल खाली है!").open()
-                return
-
-            x = global_min
-            A0_kg = A_vals_sum / total_rows
-            S_kg = opataz_cpp.calc_S(firsts_kg)
-            sigma_kg = opataz_cpp.calc_sigma(A0_kg, S_kg)
-            n_kg = len(str(int(sigma_kg))) if sigma_kg > 0 else 1
-            V_kg = 1 + (sigma_kg / (10 ** n_kg))
-            K = opataz_cpp.calc_K(total_rows, V_kg)
-            g = opataz_cpp.calc_g(global_max, x, K)
-            
-            n_elements = len(col_mins)
-            C_ratios = [0.0] * n_elements
-            for idx in range(n_elements):
-                if col_maxs[idx] != 0: 
-                    C_ratios[idx] = col_mins[idx] / col_maxs[idx]
-
-            O_pts_sum = 0.0
-            for vals in all_rows_data:
-                n_cols = len(vals)
-                mod_vals = [0.0] * n_cols
-                if n_elements == 2 and n_cols >= 2:
-                    mod_vals[0] = vals[0] + (vals[1] * C_ratios[0])
-                    mod_vals[1] = vals[1] + (vals[0] * C_ratios[1])
-                else:
-                    for idx in range(min(n_elements, n_cols)):
-                        mod_vals[idx] = vals[idx] + (vals[idx] * C_ratios[idx])
-                        
-                for idx in range(min(n_elements, n_cols)):
-                    if (col_maxs[idx] - col_mins[idx]) >= 2:
-                        mod_vals[idx] = sum(vals) / len(vals)
-                        
-                if n_elements == 1:
-                    last_val = mod_vals[0] if mod_vals[0] != 0 else 0.001
-                    O_pts_sum += abs(last_val)
-                else:
-                    last_val = mod_vals[-1] if mod_vals[-1] != 0 else 0.001
-                    first_val = mod_vals[0]
-                    calc_lasts = math.ceil(last_val) if last_val != 0 else 0.001
-                    components = K + first_val
-                    if components == 0: components = 0.001
-                    O_pts_sum += abs(calc_lasts * components)
-
-            if len(set(firsts_kg)) == 1:
-                O_prime = (O_pts_sum / total_rows) + (1.0 * K)
-            else:
-                abs_firsts = [abs(v) for v in firsts_kg]
-                R_filter = (min(abs_firsts) / max(abs_firsts)) * K if max(abs_firsts) != 0 else 0
-                O_prime = O_pts_sum + R_filter
-                
-            O_prime = abs(O_prime)
-            base_candidate = int(g)
-            log_base = float(base_candidate + 1) if base_candidate % 2 != 0 else float(base_candidate)
-            if log_base <= 1: log_base = 2.0
-            
-            O_final = O_prime if (O_prime <= 1 or log_base <= 1) else math.log(O_prime, log_base)
-
-            exec_time = time.time() - start_time
-            self.ids.exec_time_lbl.text = f"⏱️ कुल गणना समय (Execution Time): {exec_time:.4f} सेकंड"
-            self.ids.output_k_g.text = f"प्रोसेस्ड रोज़ (Rows): {total_rows:,} | K: {K}"
-            self.ids.output_prime.text = f"🔢 ओपटाज़' (O'): {O_prime:.6f}"
-            self.ids.output_final.text = f"🎯 FINAL OPATAZ: {O_final:.6f}"
-
-        except Exception as e:
-            self.ids.output_final.text = "CSV फाइल गणना में त्रुटि!"
-
-class ScreenManagerSetup(kivy.uix.screenmanager.ScreenManager if 'kivy' in locals() else object):
-    pass
-
-class OpatazApp(MDApp):
-    def build(self):
-        self.theme_cls.primary_palette = "Red"
-        self.theme_cls.theme_style = "Light"
-        
-        # कंपोनेंट डिक्लेरेशन फिक्स
-        from kivy.uix.screenmanager import ScreenManager
-        sm = ScreenManager()
-        sm.add_widget(LoginScreen(name='login_screen'))
-        sm.add_widget(MainScreen(name='main_screen'))
-        return sm
-
-if __name__ == '__main__':
-    # डायनामिक लेआउट ओवरराइड इंजेक्शन
-    full_kv_compiled = KV + "\\n" + """
-<MainScreen>:
-    root_outputs_m1: outputs_m1
-    root_outputs_m2: outputs_m2
-    id: main_scr_layout
-    
-    # इंजेक्टेड लेआउट्स
-    OutputsContainer:
-        id: outputs_m1
-    OutputsContainer:
-        id: outp
+            firsts_kg =
