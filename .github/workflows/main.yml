@@ -1,4 +1,4 @@
-name: Build Opataz Premium APK
+name: Build APK
 
 on:
   push:
@@ -7,43 +7,32 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
+    - name: Checkout code
       uses: actions/checkout@v4
 
+    # यहाँ हम अपनी मर्ज़ी का बिल्कुल स्टेबल पाइथन वर्शन सेट कर रहे हैं
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.9'
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v3
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: Install System Dependencies
+    - name: Install Dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential git ffmpeg libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev zip unzip autoconf libtool pkg-config libncurses5-dev libssl-dev cmake libffi-dev libltdl-dev
-
-    - name: Install Python Tools
-      run: |
-        pip install --upgrade pip virtualenv
+        sudo apt update
+        sudo apt install -y libsqlite3-dev gapc libffi-dev libssl-dev
+        pip install --upgrade pip
         pip install "cython<3.0.0" buildozer
 
-    - name: Build APK with Buildozer
+    - name: Build with Buildozer
       run: |
-        export BUILDOZER_WARN_ON_ROOT=1
-        buildozer android debug
-      env:
-        GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+        yes | buildozer -v android debug
 
-    - name: Upload Finished APK
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Opataz-AI-Premium-APK
+        name: package
         path: bin/*.apk
         
