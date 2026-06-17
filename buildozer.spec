@@ -19,8 +19,8 @@ source.include_exts = py,png,jpg,kv,atlas,so,cpp,h
 version = 1.0.0
 
 # (list) Application requirements
-# यहाँ pandas और numpy को सही तरीके से जोड़ दिया गया है
-requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow,pandas,numpy
+# यहाँ hostpython3 और numpy का स्थिर वर्जन जोड़ दिया गया है
+requirements = python3,hostpython3,kivy==2.3.0,kivymd==1.2.0,pillow,pandas,numpy==1.26.4
 
 # (str) Icon of the application
 icon.filename = icon.png
