@@ -13,14 +13,14 @@ package.domain = org.opataz
 source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas
+source.include_exts = py,png,jpg,kv,atlas,so,cpp,h
 
 # (string) Application version
 version = 1.0.0
 
 # (list) Application requirements
-# यहाँ हमने सिर्फ सबसे स्थिर और ज़रूरी लाइब्रेरीज़ रखी हैं ताकि एरर न आए
-requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow
+# यहाँ pandas और numpy को सही तरीके से जोड़ दिया गया है
+requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow,pandas,numpy
 
 # (str) Icon of the application
 icon.filename = icon.png
