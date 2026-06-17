@@ -290,7 +290,6 @@ MDScreenManager:
                             font_style: "Body2"
                             theme_text_color: "Secondary"
 
-                        # 📦 फ़ाइल अपलोड करने का कंटेनर (जैसा इमेज में है)
                         MDCard:
                             orientation: 'horizontal'
                             padding: "16dp"
@@ -324,7 +323,6 @@ MDScreenManager:
                                     font_style: "Caption"
                                     theme_text_color: "Hint"
 
-                            # ❌ इमेज की तरह हटाने वाला क्रॉस बटन (फाइल सिलेक्ट होने पर एक्टिव होगा)
                             MDIconButton:
                                 id: remove_file_btn
                                 icon: "close-circle"
@@ -334,7 +332,6 @@ MDScreenManager:
                                 disabled: True
                                 on_release: root.remove_selected_file()
 
-                        # 🏷️ पैमाने चुनें (Columns Chip Selection Container)
                         MDBoxLayout:
                             orientation: 'vertical'
                             spacing: "8dp"
@@ -346,14 +343,12 @@ MDScreenManager:
                                 font_style: "Body2"
                                 bold: True
 
-                            # चिप्स लेआउट बॉक्स
                             MDStackLayout:
                                 id: chips_container
                                 spacing: "8dp"
                                 size_hint_y: None
                                 height: self.minimum_height
 
-                        # 🚀 अपलोड की गई फाइल की गणना करें बटन
                         MDRaisedButton:
                             text: "🚀 अपलोड की गई फाइल की गणना करें"
                             md_bg_color: 0.85, 0.15, 0.15, 1
@@ -417,7 +412,6 @@ class Tab(BoxLayout):
 
 class LoginScreen(Screen):
     def login_via_gmail(self):
-        # सुरक्षित जीमेल / गूगल ऑथेंटिकेशन गेटवे
         MDSnackbar(text="Gmail / Google ID से प्रमाणीकरण सफल!").open()
         self.manager.current = 'main_screen'
 
@@ -451,18 +445,12 @@ class MainScreen(Screen):
         self.exit_file_manager()
         if path.lower().endswith('.csv'):
             self.selected_file_path = path
-            
-            # फाइल का नाम और साइज दिखाएं
             file_name = os.path.basename(path)
             file_size_kb = os.path.getsize(path) / 1024
             self.ids.csv_file_name_lbl.text = file_name
             self.ids.csv_file_size_lbl.text = f"{file_size_kb:.1f} KB"
-            
-            # क्रॉस (X) हटाने वाले बटन को एक्टिव करें (जैसा इमेज में है)
             self.ids.remove_file_btn.disabled = False
             self.ids.remove_file_btn.text_color = [0.85, 0.15, 0.15, 1]
-            
-            # ऑटोमैटिकली कॉलम्स (पैमाने) लोड करें और चिप्स बनाएं
             self.load_csv_columns(path)
         else:
             MDSnackbar(text="गलत फ़ाइल! कृपया केवल .csv फ़ाइल अपलोड करें।").open()
@@ -476,7 +464,6 @@ class MainScreen(Screen):
                 if header:
                     self.detected_columns = [col.strip() for col in header if col.strip()]
                     for col in self.detected_columns:
-                        # आपके इमेज की तरह क्रॉस बटन वाले लाल चिप्स बनाना
                         chip = MDChip(
                             text=col,
                             icon_check=True,
@@ -490,11 +477,9 @@ class MainScreen(Screen):
             pass
 
     def remove_selected_file(self):
-        # ❌ फ़ाइल हटाने वाले क्रॉस बटन का फंक्शन (जैसा इमेज में माँगा था)
         self.selected_file_path = None
         self.ids.csv_file_name_lbl.text = "कोई फाइल नहीं चुनी गई"
         self.ids.csv_file_size_lbl.text = "अधिकतम सीमा: 1GB+"
-        
         self.ids.remove_file_btn.disabled = True
         self.ids.remove_file_btn.text_color = [0.8, 0.2, 0.2, 0.3]
         self.ids.chips_container.clear_widgets()
@@ -536,4 +521,20 @@ class MainScreen(Screen):
             raw_chains = [c['elements'] for c in chains_info]
             A_vals_kg = [OpatazPythonEngine.calc_A(c) for c in raw_chains if c]
             A0_kg = sum(A_vals_kg) / len(A_vals_kg) if A_vals_kg else 1.0
-            firsts_kg =
+            
+            firsts_kg = [c[0] for c in raw_chains if c]
+            S_kg = OpatazPythonEngine.calc_S(firsts_kg)
+            V_kg = OpatazPythonEngine.calc_sigma(A0_kg, S_kg)
+            
+            all_flat = [x for c in raw_chains for x in c]
+            if not all_flat: return
+            N_kg = len(all_flat)
+            K_kg = OpatazPythonEngine.calc_K(N_kg, V_kg)
+            g_kg = OpatazPythonEngine.calc_g(max(all_flat), min(all_flat), K_kg)
+            
+            resolved_chains = []
+            for info in chains_info:
+                rc, _ = OpatazPythonEngine.detect_and_resolve_loop(info['elements'], K_kg, info['has_dots'])
+                resolved_chains.append(rc)
+                
+            mod_chains = OpatazPythonEngine.apply_c_ratio_manual(resolve
