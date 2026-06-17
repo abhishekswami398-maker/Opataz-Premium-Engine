@@ -27,24 +27,26 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential ccache git python3-dev libffi-dev libssl-dev unzip autoconf automake libtool pkg-config cmake
 
-    - name: Install Buildozer and Fixed Cython
+    - name: Install Buildozer and Cython
       run: |
         pip install --upgrade pip
-        # सबसे स्थिर बिल्ड के लिए cython का यह वर्जन जरूरी है
         pip install "cython<3.0.0" buildozer virtualenv
 
     - name: Auto-Generate Clean Buildozer Spec
       run: |
         rm -f buildozer.spec
-        cat <<EOT >> buildozer.spec
+        buildozer init
+        
+        # सीधे spec फ़ाइल को सबसे सटीक सेटिंग्स के साथ ओवरराइट करना
+        cat <<EOT > buildozer.spec
         [app]
         title = Opataz AI
         package.name = opatazai
         package.domain = org.opataz
         source.dir = .
-        source.include_exts = py,png,jpg,kv,atlas
+        source.include_exts = py,png,jpg,kv,atlas,json,csv
         version = 1.0.0
-        requirements = python3,kivy,kivymd,pillow
+        requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow
         orientation = portrait
         fullscreen = 1
         android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, INTERNET
@@ -60,24 +62,26 @@ jobs:
         warn_on_root = 1
         EOT
 
-    - name: Clear Pre-Installed GitHub NDK Path
+    - name: Clean Environment Paths
       run: |
-        # यहाँ हम गिटहब के गलत r27 NDK को पूरी तरह अनसेट कर रहे हैं ताकि लफड़ा खत्म हो जाए
         unset ANDROID_NDK_HOME
         unset ANDROID_NDK_ROOT
         rm -rf ~/.buildozer
         rm -rf .buildozer/
 
-    - name: Build with Buildozer
+    - name: Ultimate Bulletproof Build
       run: |
-        # एनवायरनमेंट वेरिएबल्स को हटाकर शुद्ध रखना ताकि बिल्डोइज़र खुद अपना सही r25b सेट करे
         export JAVA_HOME=$JAVA_HOME_17_X64
         export PATH=$JAVA_HOME/bin:$PATH
         unset ANDROID_NDK_HOME
         unset ANDROID_NDK_ROOT
-        YES=1 buildozer -v android debug
+        
+        # टूलचेन को पूरा सच उगलने पर मजबूर करने के लिए DEBUG फ़्लैग के साथ रन करना
+        text="yes"
+        echo "$text" | buildozer -v android debug || { echo "---------------- BUILD FAILED! PRINTING DETAILED LOGS ----------------"; cat .buildozer/android/platform/build-armeabi-v7a_arm64-v8a/dists/opatazai__armeabi-v7a/build.log 2>/dev/null || true; exit 1; }
 
     - name: Upload APK Artifact
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: Opataz-AI-APK
