@@ -1,57 +1,24 @@
 [app]
-
-# (string) Title of your application
 title = Opataz AI
-
-# (string) Package name
 package.name = opatazai
-
-# (string) Package domain (needed for android package name)
 package.domain = org.opataz
-
-# (string) Source code where the main.py lives
 source.dir = .
-
-# (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas,so,cpp,h
-
-# (string) Application version
+source.include_exts = py,png,jpg,kv,atlas
 version = 1.0.0
 
-# (list) Application requirements
-# भारी डिपेन्डेन्सी हटाकर पूरी तरह से लाइटवेट और 100% स्टेबल टूल्स रखे हैं
+# शुद्ध लाइटवेट और सबसे स्थिर आवश्यकताओं की सेटिंग
 requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow
 
-# (str) Icon of the application
 icon.filename = icon.png
-
-# (str) Supported orientations
 orientation = portrait
-
-# =============================================================================
-# Android specific configuration
-# =============================================================================
-
 fullscreen = 1
-
 android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, INTERNET
-
-# (int) Target Android API
 android.api = 33
-
-# (int) Minimum API your APK will support
 android.minapi = 24
-
-# (str) Android NDK version to use
 android.ndk = 25b
-
-# (bool) Automatically accept SDK licenses
 android.accept_sdk_license = True
-
 android.private_storage = True
-
 android.archs = armeabi-v7a, arm64-v8a
-
 android.allow_backup = True
 
 [buildozer]
