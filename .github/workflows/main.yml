@@ -19,7 +19,7 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libffi-dev libssl-dev build-essential ccache git python3-dev libgstreamer1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav libmtp-dev unzip apktool
+        sudo apt-get install -y libffi-dev libssl-dev build-essential ccache git python3-dev libgstreamer1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly libmtp-dev unzip
 
     - name: Install Buildozer and Cython
       run: |
@@ -29,12 +29,4 @@ jobs:
     - name: Build with Buildozer
       run: |
         YES=1 buildozer -v android debug
-      env:
-        REQS: "python3,kivy,kivymd"
-
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: Android-APK
-        path: bin/*.apk
         
