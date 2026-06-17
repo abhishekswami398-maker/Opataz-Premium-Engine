@@ -19,8 +19,8 @@ source.include_exts = py,png,jpg,kv,atlas,csv
 version = 1.0.0
 
 # (list) Application requirements
-# ध्यान दें: यहाँ kivymd और pillow दोनों को सही तरीके से जोड़ दिया गया है
-requirements = python3, kivy==2.3.0, kivymd==1.2.0, pillow, hostpython3
+# यहाँ Cython एरर को रोकने के लिए सटीक वर्शन्स सेट कर दिए गए हैं
+requirements = python3==3.10.12, kivy==2.3.0, kivymd==1.2.0, pillow, hostpython3==3.10.12
 
 # (str) Supported orientations (landscape, portrait or all)
 orientation = portrait
@@ -33,10 +33,9 @@ orientation = portrait
 fullscreen = 1
 
 # (list) Permissions
-# मोड 2 में CSV फ़ाइल लोड करने के लिए स्टोरेज परमिशन ज़रूरी है
 android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE
 
-# (int) Target Android API, should be as high as possible.
+# (int) Target Android API
 android.api = 33
 
 # (int) Minimum API your APK will support.
@@ -72,7 +71,6 @@ buildozer.allow_root = 1
 [buildozer]
 
 # (int) Log level (0 = error only, 1 = info, 2 = debug and outputs)
-# गिटहब पर एरर को साफ़ देखने के लिए इसे 2 पर रखा गया है
 log_level = 2
 
 # (int) Display warning if buildozer is run as root (0 = False, 1 = True)
