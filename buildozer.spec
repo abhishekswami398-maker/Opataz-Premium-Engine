@@ -19,8 +19,7 @@ source.include_exts = py,png,jpg,kv,atlas,csv
 version = 1.0.0
 
 # (list) Application requirements
-# यहाँ Cython एरर को रोकने के लिए सटीक वर्शन्स सेट कर दिए गए हैं
-requirements = python3==3.10.12, kivy==2.3.0, kivymd==1.2.0, pillow, hostpython3==3.10.12
+requirements = python3, kivy==2.3.0, kivymd==1.2.0, pillow, hostpython3
 
 # (str) Supported orientations (landscape, portrait or all)
 orientation = portrait
