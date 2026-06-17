@@ -26,7 +26,7 @@ jobs:
         pip install --upgrade pip
         pip install "cython<3.0.0" buildozer virtualenv
 
-    - name: Clear Buildozer Cache
+    - name: Clear Old Cache Completely
       run: |
         rm -rf ~/.buildozer
         rm -rf .buildozer/
