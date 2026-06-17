@@ -9,10 +9,9 @@ from kivymd.uix.snackbar import MDSnackbar
 from kivymd.uix.chip import MDChip
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
-from kivy.properties import BooleanProperty, StringProperty
 
 # =============================================================================
-# 🔥 शुद्ध पायथन महा-इंजन (C++ engine.cpp के 100% सटीक ऑफलाइन नियमों के साथ)
+# 🔥 शुद्ध पायथन महा-इंजन (C++ engine.cpp के 100% सटीक नियमों के साथ)
 # =============================================================================
 class OpatazPythonEngine:
     @staticmethod
@@ -130,24 +129,6 @@ class OpatazPythonEngine:
             O *= 0.001 if t == 0.0 else t
         return abs(O)
 
-    @staticmethod
-    def accumulate_frequency_chunk(current_aavriti, chunk_flat, x, g, K):
-        if g <= 0.0 or K <= 0: return current_aavriti
-        epsilon = 1e-9
-        for v in chunk_flat:
-            diff = v - x
-            if diff < -epsilon:
-                current_aavriti[0] += 1
-                continue
-            if diff < 0.0: diff = 0.0
-            index = int(math.floor(diff / g))
-            if index >= K or v >= (x + K * g - epsilon):
-                index = K - 1
-            if index < 0:
-                index = 0
-            current_aavriti[index] += 1
-        return current_aavriti
-
 # =============================================================================
 # 🎨 UI डिज़ाइन इंटरफ़ेस लेआउट (KivyMD)
 # =============================================================================
@@ -261,7 +242,7 @@ MDScreenManager:
 
                         MDTextField:
                             id: manual_input_data
-                            hint_text: "यहाँ चेन्स इनपुट करें (जैसे: 5, -3, 0...)"
+                            hint_text: "यहाँ चेन्स इनपुट करें (जैसे:\\n5, -3, 0...\\n1, 2)"
                             multiline: True
                             mode: "rectangle"
                             size_hint_y: None
@@ -274,7 +255,7 @@ MDScreenManager:
                             height: "48dp"
 
                             MDRaisedButton:
-                                text: "🚀 गॉड लेवल गति से गणना करें"
+                                text: "🚀 गॉड लेवल कैलकुलेशन"
                                 md_bg_color: 0.85, 0.15, 0.15, 1
                                 size_hint_x: 0.7
                                 on_release: root.calculate_mode_1()
@@ -303,11 +284,6 @@ MDScreenManager:
                             font_style: "Subtitle1"
                             bold: True
 
-                        MDLabel:
-                            text: "यहाँ CSV फ़ाइल अपलोड करें:"
-                            font_style: "Body2"
-                            theme_text_color: "Secondary"
-
                         MDCard:
                             orientation: 'horizontal'
                             padding: "16dp"
@@ -332,7 +308,7 @@ MDScreenManager:
                                 
                                 MDLabel:
                                     id: csv_file_name_lbl
-                                    text: "कोई फाइल नहीं चुनी गई"
+                                    text: "कोई फ़ाइल नहीं चुनी गई"
                                     font_style: "Body1"
                                     bold: True
                                 MDLabel:
@@ -357,7 +333,7 @@ MDScreenManager:
                             height: self.minimum_height
 
                             MDLabel:
-                                text: "पैमाने चुनें (Columns/Metrics Check):"
+                                text: "पैमाने चुनें (Columns Check):"
                                 font_style: "Body2"
                                 bold: True
 
@@ -368,7 +344,7 @@ MDScreenManager:
                                 height: self.minimum_height
 
                         MDRaisedButton:
-                            text: "🚀 अपलोड की गई फाइल की गणना करें"
+                            text: "🚀 अपलोड की गई फ़ाइल की गणना करें"
                             md_bg_color: 0.85, 0.15, 0.15, 1
                             pos_hint: {"center_x": .5}
                             size_hint_x: 1
@@ -389,16 +365,16 @@ MDScreenManager:
 
     MDLabel:
         id: exec_time_lbl
-        text: "⏱️ कुल गणना समय (Execution Time): - "
+        text: "⏱️ कुल गणना समय: - "
         font_style: "Caption"
         bold: True
 
     MDCard:
         orientation: 'vertical'
         padding: "16dp"
-        spacing: "8dp"
+        spacing: "12dp"
         size_hint_y: None
-        height: "180dp"
+        height: "220dp"
         md_bg_color: 1, 1, 1, 1
         elevation: 1
         radius: [12, 12, 12, 12]
@@ -430,11 +406,11 @@ class Tab(BoxLayout):
 
 class LoginScreen(Screen):
     def login_via_gmail(self):
-        MDSnackbar(text="Gmail / Google ID से प्रमाणीकरण सफल!").open()
+        MDSnackbar(text="Gmail से लॉगिन सफल!").open()
         self.manager.current = 'main_screen'
 
     def skip_login(self):
-        MDSnackbar(text="लॉगिन छोड़ दिया गया। लोकल ऑफलाइन मोड चालू है।").open()
+        MDSnackbar(text="ऑफ़लाइन स्थानीय मोड सक्रिय।").open()
         self.manager.current = 'main_screen'
 
 class MainScreen(Screen):
@@ -471,7 +447,7 @@ class MainScreen(Screen):
             self.ids.remove_file_btn.text_color = [0.85, 0.15, 0.15, 1]
             self.load_csv_columns(path)
         else:
-            MDSnackbar(text="गलत फ़ाइल! कृपया केवल .csv फ़ाइल अपलोड करें।").open()
+            MDSnackbar(text="कृपया केवल .csv फ़ाइल चुनें।").open()
 
     def load_csv_columns(self, path):
         self.ids.chips_container.clear_widgets()
@@ -496,7 +472,7 @@ class MainScreen(Screen):
 
     def remove_selected_file(self):
         self.selected_file_path = None
-        self.ids.csv_file_name_lbl.text = "कोई फाइल नहीं चुनी गई"
+        self.ids.csv_file_name_lbl.text = "कोई फ़ाइल नहीं चुनी गई"
         self.ids.csv_file_size_lbl.text = "अधिकतम सीमा: 1GB+"
         self.ids.remove_file_btn.disabled = True
         self.ids.remove_file_btn.text_color = [0.8, 0.2, 0.2, 0.3]
@@ -511,7 +487,7 @@ class MainScreen(Screen):
         self.ids.outputs_m1.ids.output_k_g.text = "कुल बॉक्स (K): -  |  इंटरवल आकार (g): -"
         self.ids.outputs_m1.ids.output_prime.text = "🔢 ओपटाज़' (O'): -"
         self.ids.outputs_m1.ids.output_final.text = "🎯 FINAL OPATAZ: -"
-        self.ids.outputs_m1.ids.exec_time_lbl.text = "⏱️ कुल गणना समय (Execution Time): - "
+        self.ids.outputs_m1.ids.exec_time_lbl.text = "⏱️ कुल गणना समय: - "
 
     def parse_chains_with_loop_flag(self, text):
         chains_info = []
@@ -528,7 +504,7 @@ class MainScreen(Screen):
     def calculate_mode_1(self):
         input_text = self.ids.manual_input_data.text.strip()
         if not input_text:
-            MDSnackbar(text="कृपया पहले चेन्स इनपुट बॉक्स में डेटा दर्ज करें!").open()
+            MDSnackbar(text="इनपुट बॉक्स खाली है!").open()
             return
 
         start_time = time.time()
@@ -542,4 +518,25 @@ class MainScreen(Screen):
             
             firsts_kg = [c[0] for c in raw_chains if c]
             S_kg = OpatazPythonEngine.calc_S(firsts_kg)
-            sigma_kg = OpatazPyt
+            sigma_kg = OpatazPythonEngine.calc_sigma(A0_kg, S_kg)
+            n_kg = len(str(int(sigma_kg))) if sigma_kg > 0 else 1
+            V_kg = 1 + (sigma_kg / (10 ** n_kg))
+            
+            K_kg = OpatazPythonEngine.calc_K(len(raw_chains), V_kg)
+            
+            all_flat = [x for c in raw_chains for x in c]
+            if not all_flat: return
+            x = min(all_flat)
+            global_max = max(all_flat)
+            g_kg = OpatazPythonEngine.calc_g(global_max, x, K_kg)
+            
+            resolved_chains = []
+            for info in chains_info:
+                rc, _ = OpatazPythonEngine.detect_and_resolve_loop(info['elements'], K_kg, info['has_dots'])
+                resolved_chains.append(rc)
+                
+            if len(resolved_chains) == 1:
+                O_prime = OpatazPythonEngine.calc_opataz_manual(resolved_chains[0], K_kg)
+            else:
+                mod_chains = OpatazPythonEngine.apply_c_ratio_manual(resolved_chains)
+                mod_chains = OpatazPythonEngine.apply_rnv_
