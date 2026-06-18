@@ -46,6 +46,6 @@ jobs:
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Opataz-AI-App
+        name: Opataz_AI_App
         path: bin/*.apk
         
