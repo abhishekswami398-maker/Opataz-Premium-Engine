@@ -24,25 +24,21 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Upgrade Git and Install Dependencies
+    - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y software-properties-common
-        sudo add-apt-repository -y ppa:git-core/ppa
-        sudo apt-get update
-        sudo apt-get install -y git build-essential ccache libffi-dev libssl-dev \
+        sudo apt-get install -y --no-install-recommends \
+          build-essential ccache git libffi-dev libssl-dev \
           autoconf automake libtool pkg-config zlib1g-dev \
           cmake unbound zip unzip openjdk-17-jdk
 
-    - name: Install Buildozer and Fixed Cython
+    - name: Install Setup Tools and Fixed Cython
       run: |
-        pip install --upgrade pip setuptools wheel
-        pip install "cython<3.0.0" buildozer virtualenv
+        pip install --upgrade pip
+        pip install "setuptools<60.0.0" "cython<3.0.0" buildozer virtualenv
 
     - name: Build Android APK
       run: |
-        # पुराना पुराना कैश साफ करके फ्रेश बिल्ड बनाना
-        buildozer android clean
         buildozer android debug
       env:
         BUILDOZER_WARN_ON_ROOT: 0
