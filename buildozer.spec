@@ -13,14 +13,13 @@ package.domain = org.opataz
 source.dir = .
 
 # (list) Source files to include
-source.include_exts = py,png,jpg,kv,atlas,csv
+source.include_exts = py,png,jpg,kv,atlas,csv,cpp,h
 
 # (str) Application versioning
 version = 1.0.0
 
-# (list) Application requirements
-# यहाँ Kivy और KivyMD के वर्शन्स को परफेक्ट मैचिंग पर सेट कर दिया गया है
-requirements = python3, kivy==2.2.1, kivymd==1.2.0, pillow, hostpython3
+# (list) Application requirements (KivyMD 1.1.1 और पुराना स्टेबल Kivy वर्शन)
+requirements = python3, kivy==2.2.1, kivymd==1.1.1, pillow, hostpython3
 
 # (str) Supported orientations
 orientation = portrait
@@ -33,7 +32,7 @@ orientation = portrait
 fullscreen = 1
 
 # (list) Permissions
-android.permissions = INTERNET
+android.permissions = INTERNET, READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE
 
 # (int) Target Android API
 android.api = 33
