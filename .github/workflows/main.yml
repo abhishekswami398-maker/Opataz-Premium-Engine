@@ -41,6 +41,8 @@ jobs:
 
     - name: Build Android APK
       run: |
+        # पुराना पुराना कैश साफ करके फ्रेश बिल्ड बनाना
+        buildozer android clean
         buildozer android debug
       env:
         BUILDOZER_WARN_ON_ROOT: 0
