@@ -19,7 +19,8 @@ source.include_exts = py,png,jpg,kv,atlas,csv
 version = 1.0.0
 
 # (list) Application requirements
-requirements = python3, kivy==2.3.0, kivymd==1.2.0, pillow, hostpython3
+# यहाँ Kivy और KivyMD के वर्शन्स को परफेक्ट मैचिंग पर सेट कर दिया गया है
+requirements = python3, kivy==2.2.1, kivymd==1.2.0, pillow, hostpython3
 
 # (str) Supported orientations
 orientation = portrait
@@ -31,13 +32,13 @@ orientation = portrait
 # (bool) Indicate if the application should be fullscreen or not
 fullscreen = 1
 
-# (list) Permissions (सिर्फ ज़रूरी ताकि बिल्ड टूल्स में गड़बड़ न हो)
+# (list) Permissions
 android.permissions = INTERNET
 
 # (int) Target Android API
 android.api = 33
 
-# (int) Minimum API your APK will support.
+# (int) Minimum API your APK will support
 android.minapi = 24
 
 # (str) Android NDK version to use
@@ -60,7 +61,7 @@ buildozer.allow_root = 1
 
 [buildozer]
 
-# (int) Log level (इसे 1 कर दिया है ताकि विशालकाय लॉग्स न बनें और ट्रंकेट एरर न आए)
+# (int) Log level (0 = error only, 1 = info, 2 = debug and outputs)
 log_level = 1
 
 # (int) Display warning if buildozer is run as root
