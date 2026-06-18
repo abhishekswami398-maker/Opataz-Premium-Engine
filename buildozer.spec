@@ -12,16 +12,16 @@ package.domain = org.opataz
 # (str) Source code where the main.py lives
 source.dir = .
 
-# (list) Source files to include (let empty to include all the files)
+# (list) Source files to include
 source.include_exts = py,png,jpg,kv,atlas,csv
 
-# (str) Application versioning (method 1)
+# (str) Application versioning
 version = 1.0.0
 
 # (list) Application requirements
 requirements = python3, kivy==2.3.0, kivymd==1.2.0, pillow, hostpython3
 
-# (str) Supported orientations (landscape, portrait or all)
+# (str) Supported orientations
 orientation = portrait
 
 # =============================================================================
@@ -31,8 +31,8 @@ orientation = portrait
 # (bool) Indicate if the application should be fullscreen or not
 fullscreen = 1
 
-# (list) Permissions
-android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE
+# (list) Permissions (सिर्फ ज़रूरी ताकि बिल्ड टूल्स में गड़बड़ न हो)
+android.permissions = INTERNET
 
 # (int) Target Android API
 android.api = 33
@@ -42,15 +42,6 @@ android.minapi = 24
 
 # (str) Android NDK version to use
 android.ndk = 25b
-
-# (str) Android NDK directory (leave empty to download automatically)
-android.ndk_path =
-
-# (str) Android SDK directory (leave empty to download automatically)
-android.sdk_path =
-
-# (str) ANT directory (leave empty to download automatically)
-android.ant_path =
 
 # (bool) If True, then skip trying to update the Android sdk
 android.skip_update = False
@@ -62,7 +53,6 @@ android.accept_sdk_license = True
 android.logcat_filters = *:S python:D
 
 # (str) The Android architectural targets to build for
-# इसे सिर्फ arm64-v8a पर रखा है ताकि बिल्ड बिना टाइमआउट हुए सुपरफास्ट बने
 android.archs = arm64-v8a
 
 # (bool) Allow root execution for buildozer
@@ -70,8 +60,8 @@ buildozer.allow_root = 1
 
 [buildozer]
 
-# (int) Log level (0 = error only, 1 = info, 2 = debug and outputs)
-log_level = 2
+# (int) Log level (इसे 1 कर दिया है ताकि विशालकाय लॉग्स न बनें और ट्रंकेट एरर न आए)
+log_level = 1
 
-# (int) Display warning if buildozer is run as root (0 = False, 1 = True)
+# (int) Display warning if buildozer is run as root
 warn_on_root = 0
